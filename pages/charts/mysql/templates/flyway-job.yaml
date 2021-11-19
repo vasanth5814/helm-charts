@@ -1,10 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}
+  name: {{ include "mysql.fullname" . }}
   labels:
-    app: {{ .Release.Name }}-{{ .Chart.Name }}
+    app: {{ include "mysql.fullname" . }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
+  backoffLimit: 16
   template:
     spec:
       containers:
@@ -17,25 +21,25 @@ spec:
             - info
           env:
             - name: FLYWAY_URL
-              value: {{ .Values.job.env.FLYWAY_URL }}
+              value: {{ include "mysql.getdbserviceurl" . }}
             - name: FLYWAY_USER
               value: {{ .Values.job.env.FLYWAY_USER }}
             - name: FLYWAY_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-{{ .Chart.Name }}
+                  name: {{ include "mysql.fullname" . }}
                   key: password
             - name: FLYWAY_PLACEHOLDER_REPLACEMENT
               value: {{ .Values.job.env.FLYWAY_PLACEHOLDER_REPLACEMENT | quote}}
             - name: FLYWAY_PLACEHOLDERS_USERNAME
               valueFrom:
                 configMapKeyRef:
-                  name: {{ .Chart.Name }}
+                  name: {{ include "mysql.fullname" . }}
                   key: spring.datasource.username
             - name: FLYWAY_PLACEHOLDERS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-{{ .Chart.Name }}
+                  name: {{ include "mysql.fullname" . }}
                   key: password
           volumeMounts:
             - mountPath: /flyway/sql
@@ -43,5 +47,5 @@ spec:
       volumes:
         - name: sql
           configMap:
-            name: {{ .Chart.Name }}
+            name: {{ include "mysql.fullname" . }}
       restartPolicy: Never
